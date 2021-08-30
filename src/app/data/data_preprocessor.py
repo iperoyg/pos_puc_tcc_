@@ -8,8 +8,16 @@ class DataPreprocessor:
     def preprocess(self, internal_data: Internal_Data) -> Internal_Data:
         raw_data = internal_data.raw_data
         pp_data = self.__pp_tolowercase(raw_data)
+        pp_data = self.__pp_remove_empty(pp_data)
+        pp_data = self.__pp_strip(pp_data)
         internal_data.add_preprocessed_data(pp_data)
         return internal_data
 
     def __pp_tolowercase(self, data: List[str]) -> List[str]:
         return [l.lower() for l in data]
+
+    def __pp_remove_empty(self, data:List[str]) -> List[str]:
+        return [l for l in data if len(l.strip()) > 0]
+
+    def __pp_strip(self, data:List[str]) -> List[str]:
+        return [l.strip() for l in data]

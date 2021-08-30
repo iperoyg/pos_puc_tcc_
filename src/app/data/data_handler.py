@@ -1,5 +1,7 @@
+from typing import List
 from app.data.data_loader import DataLoader
 from app.data.data_preprocessor import DataPreprocessor
+from app.domain.bigram import Bigram
 from app.domain.internal_data import Internal_Data
 
 class DataHandler:
@@ -9,6 +11,7 @@ class DataHandler:
         self.data : Internal_Data = None
         self.line_count = 0
         self.word_count = 0
+        self.bigrams : List[Bigram] = None
         pass
     
     def receive_data(self, file: str) -> Internal_Data:
