@@ -1,7 +1,9 @@
 from app.data.data_handler import DataHandler
 from app.service.analyser import Analyser
+
 import pandas as pd
 import argparse
+import spacy
 
 class RunAppTest:
     def __init__(self) -> None:
@@ -13,9 +15,10 @@ class RunAppTest:
         anl = Analyser()
         dh.bigrams = anl.find_bigrams(dh.data)
         dh.tfidf = anl.calculate_tdidf(dh.data)
+        dh.pos = anl.calculate_top_postaggs(dh.data, "S", 4)
 
-        #tb = pd.DataFrame.from_dict(dh.tfidf.idf, columns=("Term", "Frequency"))
-        print(pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"]))
+        print(dh.pos)
+        #print(pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"]))
 
         return "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
 

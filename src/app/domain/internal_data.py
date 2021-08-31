@@ -1,5 +1,7 @@
 from typing import List
 
+from app.domain.token import Token
+
 class Internal_Data:
     def __init__(self, name, data) -> None:
         self.name = name

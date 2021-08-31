@@ -1,14 +1,20 @@
+
+from app.domain.unigram import Unigram
+import spacy
+import pandas as pd
+
 from typing import List
 from collections import Counter
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.domain.bigram import Bigram
 from app.domain.internal_data import Internal_Data
+from app.domain.token import Token
 from app.domain.tfidf_data import TfIdf_Data
 
 class Analyser:
     def __init__(self) -> None:
+        self.spacy = spacy.load("pt_core_news_sm")
         pass
 
     def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
@@ -24,6 +30,46 @@ class Analyser:
         tfidf = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
         return TfIdf_Data(tfidf, idf)
 
+    def calculate_top_postaggs(self, input_data:Internal_Data, pos_type:str, top_n:int=5) -> List[Unigram]:
+        '''
+        POS Taggs (SpaCy)
+        Verbo = VERB & AUX = 'V'
+        Substantivo = NOUN & PROPN = 'S'
+        Adjetivo = ADJ = 'A'
+        '''
+        pos_filter = ['VERB']
+        pos_type_internal = ""
+        if pos_type == "V":
+            pos_filter = ['VERB']
+            pos_type_internal = "VERBO"
+            #pos_filter = ['VERB', 'AUX']
+        elif pos_type == "S":
+            pos_filter = ['NOUN', 'PROPN']
+            pos_type_internal = "SUBSTANTIVO"
+        elif pos_type == "A":
+            pos_filter = ['ADJ']
+            pos_type_internal = "ADJETIVO"
+        else:
+            raise Exception("Wrong pos_type")
+
+        pos = self.define_postaggs(input_data)
+        flat_list = [item for sublist in pos for item in sublist]
+        flat_list = [item for item in flat_list if item.pos in pos_filter]
+        counter = dict()
+        for item in flat_list:
+            item_key = item.raw
+            if item_key not in counter:
+                counter[item_key] = 0
+            counter[item_key] +=1
+        #sorted_counter = {k: v for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)[:top_n]}
+        #print(top_postaggs)
+        top_postaggs = [Unigram(Token(k,pos_type_internal), v) for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)[:top_n]]
+        return top_postaggs
+
+
+    def define_postaggs(self, input_data: Internal_Data) -> List[List[Token]]:
+        return [[Token(t.text, t.pos_) for t in self.spacy(s)] for s in input_data.get()]
+
     def __find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
         data = input_data.get()
         bigrams = list()
@@ -35,3 +81,6 @@ class Analyser:
                 bigram = Bigram(t1,t2)
                 bigrams.append(bigram)
         return bigrams
+
+    def __define_postaggs(self, text:str) -> List[Token]:
+        return [Token(t.text, t.pos_) for t in self.spacy(text)]
