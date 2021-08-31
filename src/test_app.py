@@ -14,10 +14,11 @@ class RunAppTest:
         dh.receive_data(text_file)
         anl = Analyser()
         dh.bigrams = anl.find_bigrams(dh.data)
+        dh.trigrams = anl.find_trigrams(dh.data, 6)
         dh.tfidf = anl.calculate_tdidf(dh.data)
         dh.pos = anl.calculate_top_postaggs(dh.data, "S", 4)
 
-        print(dh.pos)
+        #print(dh.trigrams)
         #print(pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"]))
 
         return "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)

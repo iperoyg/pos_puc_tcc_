@@ -1,10 +1,13 @@
 from typing import List
+
 from app.data.data_loader import DataLoader
 from app.data.data_preprocessor import DataPreprocessor
 from app.domain.bigram import Bigram
+from app.domain.trigram import Trigram
 from app.domain.internal_data import Internal_Data
 from app.domain.tfidf_data import TfIdf_Data
 from app.domain.token import Token
+
 
 class DataHandler:
     def __init__(self) -> None:
@@ -14,6 +17,7 @@ class DataHandler:
         self.line_count = 0
         self.word_count = 0
         self.bigrams : List[Bigram] = None
+        self.trigrams : List[Trigram] = None
         self.tfidf : TfIdf_Data = None
         self.pos : List[List[Token]] = None
         pass
