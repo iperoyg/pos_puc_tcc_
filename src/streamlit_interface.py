@@ -44,16 +44,28 @@ if not file_location:
 
 if submmit_button and report_selector == "Simple data":
     local_execute = execute(file_location)
-    st.write(local_execute.response)
+    with st.container():
+        st.write(local_execute.response)
+        st.table(local_execute.report)
 
-    st.text("Wordcloud")
-    fig, ax = plt.subplots()
-    plt.imshow(local_execute.wordcloud, interpolation='bilinear')
-    plt.axis("off")
-    plt.show()
-    st.pyplot(fig)
+    with st.container():
+        
+        col1, col2 = st.columns(2)        
+        with col1:
+            fig, ax = plt.subplots()
+            plt.imshow(local_execute.wordcloud, interpolation='bilinear')
+            plt.axis("off")
+            plt.show()
+            st.pyplot(fig)
 
-    st.table(local_execute.report)
+        with col2:
+            fig, ax = plt.subplots()
+            plt.imshow(local_execute.wordcloud, interpolation='bilinear')
+            plt.axis("off")
+            plt.show()
+            st.pyplot(fig)
+
+    
 else:
     pass
 
