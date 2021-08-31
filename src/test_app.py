@@ -11,7 +11,8 @@ class RunAppTest:
         dh.receive_data(text_file)
         anl = Analyser()
         dh.bigrams = anl.find_bigrams(dh.data)
-        print (dh.bigrams)
+        dh.tfidf = anl.calculate_tdidf(dh.data)
+
         return "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
 
 if __name__ == "__main__":
