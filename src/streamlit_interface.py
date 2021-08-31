@@ -34,12 +34,15 @@ def execute(text_file: str) -> LocalItemData:
 
 st.title('My first app')
 
-file_location = st.text_input("Type file location")
+file_location = st.sidebar.text_input("Type file location")
+report_selector = st.sidebar.selectbox("Choose report", ["Simple data", "Word focus"])
+submmit_button = st.sidebar.button('Analyse file')
+
 if not file_location:
     st.warning('Please input a full file name location.')
     st.stop()
 
-if st.button('Analyse file'):
+if submmit_button and report_selector == "Simple data":
     local_execute = execute(file_location)
     st.write(local_execute.response)
 
