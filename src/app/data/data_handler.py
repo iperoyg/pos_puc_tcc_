@@ -21,6 +21,9 @@ class DataHandler:
         self.__report()
         return self.data
 
+    def get_plain_text(self) -> str:
+        return self.data.get_text()
+
     def __report(self):
         self.line_count = len(self.data.pp_data)
         self.word_count = sum(len(x.split(' ')) for x in self.data.pp_data)

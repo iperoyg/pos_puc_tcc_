@@ -13,3 +13,6 @@ class Internal_Data:
         if self.pp_data is None:
             return self.raw_data
         return self.pp_data
+    
+    def get_text(self) -> str:
+        return " ".join(self.get())
