@@ -57,6 +57,10 @@ def run_app():
         dh.bigrams = anl.find_bigrams(dh.data)
         dh.trigrams = anl.find_trigrams(dh.data)
         dh.tfidf = anl.calculate_tfidf(dh.data)
+        dh.pos = anl.define_postaggs(dh.data)
+        dh.pos_verbs_ranking = anl.calculate_postaggs_ranking(dh.pos, "V")
+        dh.pos_nouns_ranking = anl.calculate_postaggs_ranking(dh.pos, "S")
+        dh.pos_adjs_ranking = anl.calculate_postaggs_ranking(dh.pos, "A")
         dh.sentiment = anl.calculate_sentiment(dh.data)
         return dh
 
@@ -131,9 +135,9 @@ def execute(dh: DataHandler, anl : Analyser, text_file: str, idf_ranking_size:in
     top_positives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.POSITIVE, idf_ranking_size)
     top_negatives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.NEGATIVE, idf_ranking_size)
 
-    top_verbs = anl.calculate_top_postaggs(dh.data, "V", top_pos_n)
-    top_nouns = anl.calculate_top_postaggs(dh.data, "S", top_pos_n)
-    top_adjs = anl.calculate_top_postaggs(dh.data, "A", top_pos_n)
+    top_verbs = dh.pos_verbs_ranking[:top_pos_n]
+    top_nouns = dh.pos_nouns_ranking[:top_pos_n]
+    top_adjs = dh.pos_adjs_ranking[:top_pos_n]
 
     lid = LocalItemData()
 

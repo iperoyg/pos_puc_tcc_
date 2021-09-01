@@ -44,7 +44,7 @@ class Analyser:
         tfidf = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
         return TfIdf_Data(tfidf, idf)
 
-    def calculate_top_postaggs(self, input_data:Internal_Data, pos_type:str, top_n:int=5) -> List[Unigram]:
+    def calculate_postaggs_ranking(self, pos_data:List[List[Token]], pos_type:str) -> List[Unigram]:
         '''
         POS Taggs (SpaCy)
         Verbo = VERB & AUX = 'V'
@@ -66,7 +66,7 @@ class Analyser:
         else:
             raise Exception("Wrong pos_type")
 
-        pos = self.__define_postaggs(input_data)
+        pos = pos_data
         flat_list = [item for sublist in pos for item in sublist]
         flat_list = [item for item in flat_list if item.pos in pos_filter]
         counter = dict()
@@ -75,8 +75,7 @@ class Analyser:
             if item_key not in counter:
                 counter[item_key] = 0
             counter[item_key] +=1
-        top_postaggs = [Unigram(Token(k,pos_type_internal), v) for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)[:top_n]]
-        return top_postaggs
+        return [Unigram(Token(k,pos_type_internal), v) for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)]
 
     def calculate_sentiment(self, input_data: Internal_Data) -> List[Sentiment_Data]:
         return [Sentiment_Data(text=s,polarity_score=self.leia.polarity_scores(s)) for s in input_data.get()]
@@ -87,7 +86,7 @@ class Analyser:
         top = sorted_sentiments[:top_n]
         return top
 
-    def __define_postaggs(self, input_data: Internal_Data) -> List[List[Token]]:
+    def define_postaggs(self, input_data: Internal_Data) -> List[List[Token]]:
         return [[Token(t.text, t.pos_) for t in self.spacy(s)] for s in input_data.get()]
 
     def __find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
