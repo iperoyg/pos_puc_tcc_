@@ -9,9 +9,13 @@ from wordcloud import WordCloud
 from app.data.data_handler import DataHandler
 from app.service.analyser import Analyser
 
-class LocalItemData:
+class UIData_TextInsights:
     def __init__(self) -> None:
         self.text_statistics = None
+        self.sent_top_n = None
+        self.ngram_top_n = None
+        self.pos_top_n = None
+        self.file_name = None
         self.wordcloud = None
         self.idf_ranking = None
         self.positives = None
@@ -40,8 +44,10 @@ def main():
 def hash_data_handler(data_handler):
     return (data_handler.file_name, data_handler.stopwords_list)
 
-def run_app():
+def hash_text_insights(data: UIData_TextInsights):
+    return (data.sent_top_n, data.ngram_top_n, data.pos_top_n, data.file_name)
 
+def run_app():
     @st.cache
     def get_stopwords() -> List[str]:
         nltk.download('stopwords')
@@ -73,18 +79,13 @@ def run_app():
     dh = get_data(file_location)
     anl = Analyser()
     
-    report_selector = st.sidebar.selectbox("Choose report", ["Simple data", "Word focus"])
+    report_selector = st.sidebar.selectbox("Choose report", ["Text Insights", "Word Insights"])
     idf_ranking_size = st.sidebar.slider('Inverse Doc Frequency Ranking Size', 5, 25, 10)
     ngrams_ranking_size = st.sidebar.slider('N-Grams Ranking Size', 2, 15, 10)
     postags_ranking_size = st.sidebar.slider('POS Taggins Ranking Size', 5, 25, 10)
-    submmit_button = st.sidebar.button('Analyse file')
-
-    if not file_location:
-        st.warning('Please input a full file name location.')
-        st.stop()
-
-    if submmit_button and report_selector == "Simple data":
-        local_execute = execute(dh, anl, file_location, idf_ranking_size, ngrams_ranking_size, postags_ranking_size)
+    
+    if report_selector == "Text Insights":
+        local_execute = get_text_insights(dh, idf_ranking_size, ngrams_ranking_size, postags_ranking_size)
 
         with st.container():
             st.markdown("""---""")
@@ -130,39 +131,47 @@ def run_app():
     else:
         pass
 
-def execute(dh: DataHandler, anl : Analyser, text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n:int=5) -> LocalItemData:
+@st.cache(hash_funcs={UIData_TextInsights:hash_text_insights})
+def get_text_insights(dh: DataHandler, sent_top_n:int=10, ngram_top_n:int = 5, pos_top_n:int=5) -> UIData_TextInsights:
+    print("Insights - Cache Miss")
+    anl = Analyser()
+    top_positives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.POSITIVE, sent_top_n)
+    top_negatives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.NEGATIVE, sent_top_n)
+
+    top_verbs = dh.pos_verbs_ranking[:pos_top_n]
+    top_nouns = dh.pos_nouns_ranking[:pos_top_n]
+    top_adjs = dh.pos_adjs_ranking[:pos_top_n]
+
+    uidata = UIData_TextInsights()
+    uidata.sent_top_n = sent_top_n
+    uidata.ngram_top_n = ngram_top_n
+    uidata.pos_top_n = pos_top_n
+    uidata.file_name = dh.file_name
     
-    top_positives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.POSITIVE, idf_ranking_size)
-    top_negatives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.NEGATIVE, idf_ranking_size)
+    uidata.text_statistics = "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
 
-    top_verbs = dh.pos_verbs_ranking[:top_pos_n]
-    top_nouns = dh.pos_nouns_ranking[:top_pos_n]
-    top_adjs = dh.pos_adjs_ranking[:top_pos_n]
+    uidata.idf_ranking = pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"])
+    uidata.idf_ranking = uidata.idf_ranking.sort_values(by=["Rank"], ascending=False).head(sent_top_n)
+    uidata.positives = pd.DataFrame([(i.text, i.weight) for i in top_positives], columns=("Positive Phrase", "Score"))
+    uidata.negatives = pd.DataFrame([(i.text, i.weight) for i in top_negatives], columns=("Negative Phrase", "Score"))
 
-    lid = LocalItemData()
+    uidata.wordcloud = WordCloud().generate(dh.get_plain_text(pruned=True))
 
-    lid.text_statistics = "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
+    
+    
+    uidata.bigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.bigrams[:ngram_top_n]], columns=("Bigram", "Frequency"))
+    uidata.bigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.bigrams[:ngram_top_n]}) # if i.frequency > 0
+    uidata.trigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.trigrams[:ngram_top_n]], columns=("Trigram", "Frequency"))
+    uidata.trigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.trigrams[:ngram_top_n]})
 
-    lid.idf_ranking = pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"])
-    lid.idf_ranking = lid.idf_ranking.sort_values(by=["Rank"], ascending=False).head(idf_ranking_size)
-    lid.positives = pd.DataFrame([(i.text, i.weight) for i in top_positives], columns=("Positive Phrase", "Score"))
-    lid.negatives = pd.DataFrame([(i.text, i.weight) for i in top_negatives], columns=("Negative Phrase", "Score"))
+    uidata.top_verbs = pd.DataFrame([(i.token.raw, i.frequency) for i in top_verbs], columns=("Verbs", "Frequency"))
+    uidata.top_verbs_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_verbs})
+    uidata.top_nouns = pd.DataFrame([(i.token.raw, i.frequency) for i in top_nouns], columns=("Nouns", "Frequency"))
+    uidata.top_nouns_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_nouns})
+    uidata.top_adjs = pd.DataFrame([(i.token.raw, i.frequency) for i in top_adjs], columns=("Adjs", "Frequency"))
+    uidata.top_adjs_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_adjs})
 
-    lid.wordcloud = WordCloud().generate(dh.get_plain_text(pruned=True))
-
-    lid.bigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.bigrams], columns=("Bigram", "Frequency"))
-    lid.bigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.bigrams})
-    lid.trigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.trigrams], columns=("Trigram", "Frequency"))
-    lid.trigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.trigrams})
-
-    lid.top_verbs = pd.DataFrame([(i.token.raw, i.frequency) for i in top_verbs], columns=("Verbs", "Frequency"))
-    lid.top_verbs_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_verbs})
-    lid.top_nouns = pd.DataFrame([(i.token.raw, i.frequency) for i in top_nouns], columns=("Nouns", "Frequency"))
-    lid.top_nouns_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_nouns})
-    lid.top_adjs = pd.DataFrame([(i.token.raw, i.frequency) for i in top_adjs], columns=("Adjs", "Frequency"))
-    lid.top_adjs_wordcloud = WordCloud().generate_from_frequencies({i.token.raw : i.frequency for i in top_adjs})
-
-    return lid
+    return uidata
 
 if __name__ == "__main__":
     main()

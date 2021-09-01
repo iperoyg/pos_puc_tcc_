@@ -20,22 +20,25 @@ class Analyser:
         self.leia = SentimentIntensityAnalyzer()
         pass
     
-    def find_all_bigrams(self, input_data: Internal_Data) -> BigramList:
+    def find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
         bigrams = self.__find_bigrams(input_data)
-        bigrams = sorted(bigrams, key=lambda x : x.frequency, reverse=True)
-        return BigramList(bigrams)
+        return sorted(bigrams, key=lambda x : x.frequency, reverse=True)
 
-    def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
-        bigrams = self.__find_bigrams(input_data)
-        bigrams_counter = Counter([b.get() for b in bigrams])
-        top = bigrams_counter.most_common(top_n)
-        return [Bigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], freq=tp[1]) for tp in top]
+    def find_trigrams(self, input_data: Internal_Data) -> List[Trigram]:
+        bigrams = self.__find_trigrams(input_data)
+        return sorted(bigrams, key=lambda x : x.frequency, reverse=True)
 
-    def find_trigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Trigram]:
-        trigrams = self.__find_trigrams(input_data)
-        trigrams_counter = Counter([b.get() for b in trigrams])
-        top = trigrams_counter.most_common(top_n)
-        return [Trigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], token3=tp[0].split('_')[2], freq=tp[1]) for tp in top]
+    #def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
+    #    bigrams = self.__find_bigrams(input_data)
+    #    bigrams_counter = Counter([b.get() for b in bigrams])
+    #    top = bigrams_counter.most_common(top_n)
+    #    return [Bigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], freq=tp[1]) for tp in top]
+
+    #def find_trigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Trigram]:
+    #    trigrams = self.__find_trigrams(input_data)
+    #    trigrams_counter = Counter([b.get() for b in trigrams])
+    #    top = trigrams_counter.most_common(top_n)
+    #    return [Trigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], token3=tp[0].split('_')[2], freq=tp[1]) for tp in top]
 
     def calculate_tfidf(self, input_data:Internal_Data) -> TfIdf_Data:
         vectorizer = TfidfVectorizer()
@@ -91,25 +94,29 @@ class Analyser:
 
     def __find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
         data = input_data.get(pruned=True)
-        bigrams = list()
+        bigrams : dict[Bigram] = dict()
         for line in data:
             tokens = line.split(' ')
             for i in range(len(tokens)-1):
                 t1 = tokens[i]
                 t2 = tokens[i+1]
-                bigram = Bigram(t1,t2)
-                bigrams.append(bigram)
-        return bigrams
+                bigram = Bigram(t1,t2,0)
+                if bigram.get() not in bigrams:
+                    bigrams[bigram.get()] = bigram
+                bigrams[bigram.get()].frequency += 1
+        return [v for _, v in bigrams.items()] 
 
     def __find_trigrams(self, input_data: Internal_Data) -> List[Trigram]:
         data = input_data.get(pruned=True)
-        trigrams = list()
+        trigrams : dict[Trigram] = dict()
         for line in data:
             tokens = line.split(' ')
             for i in range(len(tokens)-2):
                 t1 = tokens[i]
                 t2 = tokens[i+1]
                 t3 = tokens[i+2]
-                trigram = Trigram(t1,t2,t3)
-                trigrams.append(trigram)
-        return trigrams
+                trigram = Trigram(t1,t2,t3,0)
+                if trigram.get() not in trigrams:
+                    trigrams[trigram.get()] = trigram
+                trigrams[trigram.get()].frequency += 1
+        return [v for _, v in trigrams.items()] 
