@@ -80,56 +80,57 @@ def run_app():
     anl = Analyser()
     
     report_selector = st.sidebar.selectbox("Choose report", ["Text Insights", "Word Insights"])
-    idf_ranking_size = st.sidebar.slider('Inverse Doc Frequency Ranking Size', 5, 25, 10)
-    ngrams_ranking_size = st.sidebar.slider('N-Grams Ranking Size', 2, 15, 10)
-    postags_ranking_size = st.sidebar.slider('POS Taggins Ranking Size', 5, 25, 10)
+    sentiment_ranking_size = st.sidebar.slider('Sentiment Ranking Size', 5, 25, 5)
+    ngrams_ranking_size = st.sidebar.slider('N-Grams Ranking Size', 2, 25, 5)
+    postags_ranking_size = st.sidebar.slider('POS Taggins Ranking Size', 5, 50, 10)
     
     if report_selector == "Text Insights":
-        local_execute = get_text_insights(dh, idf_ranking_size, ngrams_ranking_size, postags_ranking_size)
-
-        with st.container():
-            st.markdown("""---""")
-            st.write(local_execute.text_statistics)
-            st.markdown("""---""")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.table(local_execute.idf_ranking)
-            with col2:
-                st.table(local_execute.positives)
-            with col3:
-                st.table(local_execute.negatives)
-
-            st.markdown("""---""")
-            st.image(local_execute.wordcloud.to_array())
-
-        with st.container():
-            st.markdown("""---""")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.image(local_execute.bigrams_wordcloud.to_array())
-                st.table(local_execute.bigrams)
-
-            with col2:
-                st.image(local_execute.trigrams_wordcloud.to_array())
-                st.table(local_execute.trigrams)
-
-        with st.container():
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.image(local_execute.top_verbs_wordcloud.to_array())
-                st.table(local_execute.top_verbs)
-
-            with col2:
-                st.image(local_execute.top_nouns_wordcloud.to_array())
-                st.table(local_execute.top_nouns)
-            
-            with col3:
-                st.image(local_execute.top_adjs_wordcloud.to_array())
-                st.table(local_execute.top_adjs)
+        dataui = get_text_insights(dh, sentiment_ranking_size, ngrams_ranking_size, postags_ranking_size)
+        draw_text_insights(dataui)
     else:
         pass
+
+def draw_text_insights(uidata_text_insighs:UIData_TextInsights) -> None:
+    with st.container():
+        st.markdown("""---""")
+        st.write(uidata_text_insighs.text_statistics)
+        st.markdown("""---""")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.table(uidata_text_insighs.positives)
+        with col2:
+            st.table(uidata_text_insighs.negatives)
+
+        st.markdown("""---""")
+        st.image(uidata_text_insighs.wordcloud.to_array())
+
+    with st.container():
+        st.markdown("""---""")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(uidata_text_insighs.bigrams_wordcloud.to_array())
+            st.table(uidata_text_insighs.bigrams)
+
+        with col2:
+            st.image(uidata_text_insighs.trigrams_wordcloud.to_array())
+            st.table(uidata_text_insighs.trigrams)
+
+    with st.container():
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.image(uidata_text_insighs.top_verbs_wordcloud.to_array())
+            st.table(uidata_text_insighs.top_verbs)
+
+        with col2:
+            st.image(uidata_text_insighs.top_nouns_wordcloud.to_array())
+            st.table(uidata_text_insighs.top_nouns)
+        
+        with col3:
+            st.image(uidata_text_insighs.top_adjs_wordcloud.to_array())
+            st.table(uidata_text_insighs.top_adjs)
+
 
 @st.cache(hash_funcs={UIData_TextInsights:hash_text_insights})
 def get_text_insights(dh: DataHandler, sent_top_n:int=10, ngram_top_n:int = 5, pos_top_n:int=5) -> UIData_TextInsights:
@@ -157,8 +158,6 @@ def get_text_insights(dh: DataHandler, sent_top_n:int=10, ngram_top_n:int = 5, p
 
     uidata.wordcloud = WordCloud().generate(dh.get_plain_text(pruned=True))
 
-    
-    
     uidata.bigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.bigrams[:ngram_top_n]], columns=("Bigram", "Frequency"))
     uidata.bigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.bigrams[:ngram_top_n]}) # if i.frequency > 0
     uidata.trigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.trigrams[:ngram_top_n]], columns=("Trigram", "Frequency"))
