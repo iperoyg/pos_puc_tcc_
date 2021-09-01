@@ -20,7 +20,7 @@ class RunAppTest:
         anl = Analyser()
         dh.bigrams = anl.find_bigrams(dh.data)
         dh.trigrams = anl.find_trigrams(dh.data, 6)
-        dh.tfidf = anl.calculate_tdidf(dh.data)
+        dh.tfidf = anl.calculate_tfidf(dh.data)
         dh.pos = anl.calculate_top_postaggs(dh.data, "S", 4)
         dh.sentiment = anl.calculate_sentiment(dh.data)
 

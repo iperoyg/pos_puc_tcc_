@@ -6,7 +6,7 @@ from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.domain.unigram import Unigram
-from app.domain.bigram import Bigram
+from app.domain.bigram import Bigram, BigramList
 from app.domain.trigram import Trigram
 from app.domain.internal_data import Internal_Data
 from app.domain.token import Token
@@ -20,6 +20,11 @@ class Analyser:
         self.leia = SentimentIntensityAnalyzer()
         pass
     
+    def find_all_bigrams(self, input_data: Internal_Data) -> BigramList:
+        bigrams = self.__find_bigrams(input_data)
+        bigrams = sorted(bigrams, key=lambda x : x.frequency, reverse=True)
+        return BigramList(bigrams)
+
     def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
         bigrams = self.__find_bigrams(input_data)
         bigrams_counter = Counter([b.get() for b in bigrams])
@@ -32,7 +37,7 @@ class Analyser:
         top = trigrams_counter.most_common(top_n)
         return [Trigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], token3=tp[0].split('_')[2], freq=tp[1]) for tp in top]
 
-    def calculate_tdidf(self, input_data:Internal_Data) -> TfIdf_Data:
+    def calculate_tfidf(self, input_data:Internal_Data) -> TfIdf_Data:
         vectorizer = TfidfVectorizer()
         vectors = vectorizer.fit_transform(input_data.get(pruned=True))
         idf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
