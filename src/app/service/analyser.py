@@ -11,12 +11,15 @@ from app.domain.trigram import Trigram
 from app.domain.internal_data import Internal_Data
 from app.domain.token import Token
 from app.domain.tfidf_data import TfIdf_Data
+from app.domain.sentiment_data import Sentiment_Data, Sentiment_Type
+from app.LeIA.leia import SentimentIntensityAnalyzer
 
 class Analyser:
     def __init__(self) -> None:
         self.spacy = spacy.load("pt_core_news_sm")
+        self.leia = SentimentIntensityAnalyzer()
         pass
-
+    
     def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
         bigrams = self.__find_bigrams(input_data)
         bigrams_counter = Counter([b.get() for b in bigrams])
@@ -58,7 +61,7 @@ class Analyser:
         else:
             raise Exception("Wrong pos_type")
 
-        pos = self.define_postaggs(input_data)
+        pos = self.__define_postaggs(input_data)
         flat_list = [item for sublist in pos for item in sublist]
         flat_list = [item for item in flat_list if item.pos in pos_filter]
         counter = dict()
@@ -67,13 +70,19 @@ class Analyser:
             if item_key not in counter:
                 counter[item_key] = 0
             counter[item_key] +=1
-        #sorted_counter = {k: v for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)[:top_n]}
-        #print(top_postaggs)
         top_postaggs = [Unigram(Token(k,pos_type_internal), v) for k, v in sorted(counter.items(), key=lambda item: item[1], reverse=True)[:top_n]]
         return top_postaggs
 
+    def calculate_sentiment(self, input_data: Internal_Data) -> List[Sentiment_Data]:
+        return [Sentiment_Data(text=s,polarity_score=self.leia.polarity_scores(s)) for s in input_data.get()]
 
-    def define_postaggs(self, input_data: Internal_Data) -> List[List[Token]]:
+    def get_top_sentiments(self, data: List[Sentiment_Data], sentiment:Sentiment_Type, top_n:int=5):
+        filtered_sentiments = [i for i in data if i.polarity == sentiment]
+        sorted_sentiments = sorted(filtered_sentiments, key=lambda x: x.weight, reverse=True)
+        top = sorted_sentiments[:top_n]
+        return top
+
+    def __define_postaggs(self, input_data: Internal_Data) -> List[List[Token]]:
         return [[Token(t.text, t.pos_) for t in self.spacy(s)] for s in input_data.get()]
 
     def __find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
@@ -100,6 +109,3 @@ class Analyser:
                 trigram = Trigram(t1,t2,t3)
                 trigrams.append(trigram)
         return trigrams
-
-    def __define_postaggs(self, text:str) -> List[Token]:
-        return [Token(t.text, t.pos_) for t in self.spacy(text)]

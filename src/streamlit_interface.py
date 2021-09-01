@@ -1,3 +1,4 @@
+from app.domain.sentiment_data import Sentiment_Type
 import nltk
 import pandas as pd
 import streamlit as st
@@ -12,6 +13,8 @@ class LocalItemData:
         self.text_statistics = None
         self.wordcloud = None
         self.idf_ranking = None
+        self.positives = None
+        self.negatives = None
         self.bigrams = None
         self.bigrams_wordcloud = None
         self.trigrams = None
@@ -21,8 +24,7 @@ class LocalItemData:
         self.top_nouns = None
         self.top_nouns_wordcloud = None
         self.top_adjs = None
-        self.top_adjs_wordcloud = None
-        
+        self.top_adjs_wordcloud = None        
         pass
 
 def execute(text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n:int=5) -> LocalItemData:
@@ -34,6 +36,10 @@ def execute(text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n
     dh.bigrams = anl.find_bigrams(dh.data, ngrams_n)
     dh.trigrams = anl.find_trigrams(dh.data, ngrams_n)
     dh.tfidf = anl.calculate_tdidf(dh.data)
+    dh.sentiment = anl.calculate_sentiment(dh.data)
+
+    top_positives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.POSITIVE, idf_ranking_size)
+    top_negatives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.NEGATIVE, idf_ranking_size)
 
     top_verbs = anl.calculate_top_postaggs(dh.data, "V", top_pos_n)
     top_nouns = anl.calculate_top_postaggs(dh.data, "S", top_pos_n)
@@ -45,6 +51,8 @@ def execute(text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n
 
     lid.idf_ranking = pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"])
     lid.idf_ranking = lid.idf_ranking.sort_values(by=["Rank"], ascending=False).head(idf_ranking_size)
+    lid.positives = pd.DataFrame([(i.text, i.weight) for i in top_positives], columns=("Positive Phrase", "Score"))
+    lid.negatives = pd.DataFrame([(i.text, i.weight) for i in top_negatives], columns=("Negative Phrase", "Score"))
 
     lid.wordcloud = WordCloud().generate(dh.get_plain_text(pruned=True))
 
@@ -82,7 +90,16 @@ if submmit_button and report_selector == "Simple data":
     with st.container():
         st.markdown("""---""")
         st.write(local_execute.text_statistics)
-        st.table(local_execute.idf_ranking)
+        st.markdown("""---""")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.table(local_execute.idf_ranking)
+        with col2:
+            st.table(local_execute.positives)
+        with col3:
+            st.table(local_execute.negatives)
+
         st.markdown("""---""")
         fig, ax = plt.subplots()
         plt.imshow(local_execute.wordcloud, interpolation='bilinear')

@@ -6,6 +6,8 @@ import argparse
 import spacy
 import nltk
 
+from app.LeIA.leia import SentimentIntensityAnalyzer
+
 class RunAppTest:
     def __init__(self) -> None:
         nltk.download('stopwords')
@@ -20,11 +22,19 @@ class RunAppTest:
         dh.trigrams = anl.find_trigrams(dh.data, 6)
         dh.tfidf = anl.calculate_tdidf(dh.data)
         dh.pos = anl.calculate_top_postaggs(dh.data, "S", 4)
+        dh.sentiment = anl.calculate_sentiment(dh.data)
+
+        #for s in dh.sentiment:
+        #    print (s.polarity,'\t', s.polarity_dict, '\t', s.text)
 
         #print(dh.trigrams)
         #print(pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"]))
+        #print(dh.data.pruned_data)
 
-        print(dh.data.pruned_data)
+        #sent_analyser = SentimentIntensityAnalyzer()
+        #for sentence in dh.data.pruned_data:
+        #    print(sentence, sent_analyser.polarity_scores(sentence))
+
         return "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
 
 if __name__ == "__main__":
