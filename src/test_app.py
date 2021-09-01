@@ -4,13 +4,16 @@ from app.service.analyser import Analyser
 import pandas as pd
 import argparse
 import spacy
+import nltk
 
 class RunAppTest:
     def __init__(self) -> None:
+        nltk.download('stopwords')
+        self.stopwords = nltk.corpus.stopwords.words('portuguese')
         pass
     
     def execute(self, text_file: str):
-        dh = DataHandler()
+        dh = DataHandler(stopwords_list=self.stopwords)
         dh.receive_data(text_file)
         anl = Analyser()
         dh.bigrams = anl.find_bigrams(dh.data)
@@ -21,6 +24,7 @@ class RunAppTest:
         #print(dh.trigrams)
         #print(pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"]))
 
+        print(dh.data.pruned_data)
         return "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
 
 if __name__ == "__main__":

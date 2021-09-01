@@ -31,7 +31,7 @@ class Analyser:
 
     def calculate_tdidf(self, input_data:Internal_Data) -> TfIdf_Data:
         vectorizer = TfidfVectorizer()
-        vectors = vectorizer.fit_transform(input_data.get())
+        vectors = vectorizer.fit_transform(input_data.get(pruned=True))
         idf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
         tfidf = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
         return TfIdf_Data(tfidf, idf)
@@ -77,7 +77,7 @@ class Analyser:
         return [[Token(t.text, t.pos_) for t in self.spacy(s)] for s in input_data.get()]
 
     def __find_bigrams(self, input_data: Internal_Data) -> List[Bigram]:
-        data = input_data.get()
+        data = input_data.get(pruned=True)
         bigrams = list()
         for line in data:
             tokens = line.split(' ')
@@ -89,7 +89,7 @@ class Analyser:
         return bigrams
 
     def __find_trigrams(self, input_data: Internal_Data) -> List[Trigram]:
-        data = input_data.get()
+        data = input_data.get(pruned=True)
         trigrams = list()
         for line in data:
             tokens = line.split(' ')

@@ -1,6 +1,5 @@
+import nltk
 import pandas as pd
-from pandas.tseries import frequencies
-from app.domain.bigram import Bigram
 import streamlit as st
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -27,7 +26,9 @@ class LocalItemData:
         pass
 
 def execute(text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n:int=5) -> LocalItemData:
-    dh = DataHandler()
+    nltk.download('stopwords')
+    stopwords = nltk.corpus.stopwords.words('portuguese')
+    dh = DataHandler(stopwords_list=stopwords)
     dh.receive_data(text_file)
     anl = Analyser()
     dh.bigrams = anl.find_bigrams(dh.data, ngrams_n)
@@ -45,7 +46,7 @@ def execute(text_file: str, idf_ranking_size:int=10, ngrams_n:int = 5, top_pos_n
     lid.idf_ranking = pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"])
     lid.idf_ranking = lid.idf_ranking.sort_values(by=["Rank"], ascending=False).head(idf_ranking_size)
 
-    lid.wordcloud = WordCloud().generate(dh.get_plain_text())
+    lid.wordcloud = WordCloud().generate(dh.get_plain_text(pruned=True))
 
     lid.bigrams = pd.DataFrame([(i.get(), i.frequency) for i in dh.bigrams], columns=("Bigram", "Frequency"))
     lid.bigrams_wordcloud = WordCloud().generate_from_frequencies({i.get(): i.frequency for i in dh.bigrams})

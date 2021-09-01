@@ -10,9 +10,9 @@ from app.domain.token import Token
 
 
 class DataHandler:
-    def __init__(self) -> None:
+    def __init__(self, stopwords_list) -> None:
         self.dl = DataLoader()
-        self.dpp = DataPreprocessor()
+        self.dpp = DataPreprocessor(stopwords_list)
         self.data : Internal_Data = None
         self.line_count = 0
         self.word_count = 0
@@ -29,8 +29,8 @@ class DataHandler:
         self.__report()
         return self.data
 
-    def get_plain_text(self) -> str:
-        return self.data.get_text()
+    def get_plain_text(self, pruned=False) -> str:
+        return self.data.get_text(pruned)
 
     def __report(self):
         self.line_count = len(self.data.pp_data)
