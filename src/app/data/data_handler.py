@@ -21,10 +21,10 @@ class DataHandler:
         self.data : Internal_Data = None
         self.line_count = 0
         self.word_count = 0
-        #self.bigrams : BigramList = None
         self.bigrams : List[Bigram] = None
         self.trigrams : List[Trigram] = None
         self.tfidf : TfIdf_Data = None
+        self.tfidf_clusters = None
         self.pos : List[List[Token]] = None
         self.pos_verbs_ranking : List[Unigram]= None
         self.pos_nouns_ranking : List[Unigram]= None

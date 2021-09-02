@@ -4,6 +4,8 @@ import pandas as pd
 from typing import List
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
+
 
 from app.domain.unigram import Unigram
 from app.domain.bigram import Bigram, BigramList
@@ -28,24 +30,19 @@ class Analyser:
         bigrams = self.__find_trigrams(input_data)
         return sorted(bigrams, key=lambda x : x.frequency, reverse=True)
 
-    #def find_bigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Bigram]:
-    #    bigrams = self.__find_bigrams(input_data)
-    #    bigrams_counter = Counter([b.get() for b in bigrams])
-    #    top = bigrams_counter.most_common(top_n)
-    #    return [Bigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], freq=tp[1]) for tp in top]
-
-    #def find_trigrams(self, input_data: Internal_Data, top_n:int=3) -> List[Trigram]:
-    #    trigrams = self.__find_trigrams(input_data)
-    #    trigrams_counter = Counter([b.get() for b in trigrams])
-    #    top = trigrams_counter.most_common(top_n)
-    #    return [Trigram(token1=tp[0].split('_')[0], token2=tp[0].split('_')[1], token3=tp[0].split('_')[2], freq=tp[1]) for tp in top]
-
-    def calculate_tfidf(self, input_data:Internal_Data) -> TfIdf_Data:
+    def compute_tfidf(self, input_data:Internal_Data) -> TfIdf_Data:
         vectorizer = TfidfVectorizer()
         vectors = vectorizer.fit_transform(input_data.get(pruned=True))
         idf = dict(zip(vectorizer.get_feature_names(), vectorizer.idf_))
-        tfidf = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
-        return TfIdf_Data(tfidf, idf)
+        tfidf_flat = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
+        return TfIdf_Data(vectors, tfidf_flat, idf)
+
+    def compute_tfidf_cluster(self, input_data:Internal_Data, tfidf_data:TfIdf_Data, n_clusters:int=3) -> List:
+        kmeans = KMeans(n_clusters=n_clusters).fit(tfidf_data.tfidf)
+        result = kmeans.predict(tfidf_data.tfidf)
+        #print(type(result), len(result))
+        #print(type(input_data.get(True)), len(input_data.get(True)))
+        return list(zip(result, input_data.get(True)))
 
     def calculate_postaggs_ranking(self, pos_data:List[List[Token]], pos_type:str) -> List[Unigram]:
         '''

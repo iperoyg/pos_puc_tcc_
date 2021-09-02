@@ -60,14 +60,19 @@ def run_app():
         anl = Analyser()
         dh = DataHandler(stopwords_list=get_stopwords())
         dh.receive_data(text_file)
+
+        dh.tfidf = anl.compute_tfidf(dh.data)
+        dh.tfidf_clusters = anl.compute_tfidf_cluster(dh.data, dh.tfidf, n_clusters=3)
+
         dh.bigrams = anl.find_bigrams(dh.data)
         dh.trigrams = anl.find_trigrams(dh.data)
-        dh.tfidf = anl.calculate_tfidf(dh.data)
         dh.pos = anl.define_postaggs(dh.data)
         dh.pos_verbs_ranking = anl.calculate_postaggs_ranking(dh.pos, "V")
         dh.pos_nouns_ranking = anl.calculate_postaggs_ranking(dh.pos, "S")
         dh.pos_adjs_ranking = anl.calculate_postaggs_ranking(dh.pos, "A")
         dh.sentiment = anl.calculate_sentiment(dh.data)
+
+
         return dh
 
     file_location = st.sidebar.text_input("Type file location")
