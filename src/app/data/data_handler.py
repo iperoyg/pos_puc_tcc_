@@ -2,6 +2,7 @@ from typing import List
 
 from app.data.data_loader import DataLoader
 from app.data.data_preprocessor import DataPreprocessor
+from app.domain.tfidf_cluster import TfIdf_Cluster
 from app.domain.unigram import Unigram
 from app.domain.bigram import Bigram, BigramList
 from app.domain.sentiment_data import Sentiment_Data
@@ -24,7 +25,7 @@ class DataHandler:
         self.bigrams : List[Bigram] = None
         self.trigrams : List[Trigram] = None
         self.tfidf : TfIdf_Data = None
-        self.tfidf_clusters = None
+        self.tfidf_clusters : TfIdf_Cluster = None
         self.pos : List[List[Token]] = None
         self.pos_verbs_ranking : List[Unigram]= None
         self.pos_nouns_ranking : List[Unigram]= None

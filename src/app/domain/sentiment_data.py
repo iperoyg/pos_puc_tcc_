@@ -26,4 +26,7 @@ class Sentiment_Data:
         else:
             self.polarity = Sentiment_Type.POSITIVE
             self.weight = pos
+    
+    def __repr__(self) -> str:
+        return "{s}:{t}".format(s=self.polarity, t=self.text)
 

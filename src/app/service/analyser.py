@@ -1,3 +1,4 @@
+from app.domain.tfidf_cluster import TfIdf_Cluster
 import spacy
 import pandas as pd
 
@@ -37,12 +38,23 @@ class Analyser:
         tfidf_flat = dict(zip(vectorizer.get_feature_names(), vectors.todense().tolist()))
         return TfIdf_Data(vectors, tfidf_flat, idf)
 
-    def compute_tfidf_cluster(self, input_data:Internal_Data, tfidf_data:TfIdf_Data, n_clusters:int=3) -> List:
+    def compute_tfidf_cluster(self, input_data:Internal_Data, tfidf_data:TfIdf_Data, n_clusters:int=0) -> TfIdf_Cluster:
+        if n_clusters == 0:
+            #find best cluster
+            n_clusters = 4
         kmeans = KMeans(n_clusters=n_clusters).fit(tfidf_data.tfidf)
         result = kmeans.predict(tfidf_data.tfidf)
-        #print(type(result), len(result))
-        #print(type(input_data.get(True)), len(input_data.get(True)))
-        return list(zip(result, input_data.get(True)))
+        tfidf_clusters = TfIdf_Cluster(clusters=list(zip(result, input_data.get(True))), inertia=kmeans.inertia_)
+        df = pd.DataFrame(data=tfidf_clusters.clusters, columns=['cluster', 'text'])
+        df_g = df.groupby(by = ['cluster'])['text'].unique().reset_index()
+        df_g['tokens'] = df_g['text'].apply(lambda x : (' '.join(x).strip()).split(' '))
+        df_g['unique_tokens'] = df_g['tokens'].apply(lambda x : list(set(x)))
+        df_g['tokens_idf'] = df_g['unique_tokens'].apply(lambda x : {i:tfidf_data.idf[i] for i in x if i in tfidf_data.idf})
+        df_g['top_sorted_tokens_idf'] = df_g['tokens_idf'].apply(lambda x : {k: v for k, v in sorted(x.items(), key=lambda item: item[1], reverse=True)[:10]})
+        df_g['top_words_cluster'] = df_g[['cluster','top_sorted_tokens_idf']].apply(lambda x : {x[0] : x[1].keys()}, axis=1)
+        top_words_cluster_dict = df_g['top_words_cluster'].to_dict()
+        tfidf_clusters.top_words_clusters = {x:list(top_words_cluster_dict[x][x]) for x in top_words_cluster_dict}
+        return tfidf_clusters
 
     def calculate_postaggs_ranking(self, pos_data:List[List[Token]], pos_type:str) -> List[Unigram]:
         '''

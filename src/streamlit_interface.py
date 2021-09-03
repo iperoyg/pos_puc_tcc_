@@ -29,7 +29,10 @@ class UIData_TextInsights:
         self.top_nouns = None
         self.top_nouns_wordcloud = None
         self.top_adjs = None
-        self.top_adjs_wordcloud = None        
+        self.top_adjs_wordcloud = None
+
+        self.tfidf_cluster_quality = None
+        self.tfidf_cluster_top_words = None
         pass
 
 def main():
@@ -62,7 +65,6 @@ def run_app():
         dh.receive_data(text_file)
 
         dh.tfidf = anl.compute_tfidf(dh.data)
-        dh.tfidf_clusters = anl.compute_tfidf_cluster(dh.data, dh.tfidf, n_clusters=3)
 
         dh.bigrams = anl.find_bigrams(dh.data)
         dh.trigrams = anl.find_trigrams(dh.data)
@@ -82,7 +84,6 @@ def run_app():
         st.stop()
     
     dh = get_data(file_location)
-    anl = Analyser()
     
     report_selector = st.sidebar.selectbox("Choose report", ["Text Insights", "Word Insights"])
     sentiment_ranking_size = st.sidebar.slider('Sentiment Ranking Size', 5, 25, 5)
@@ -97,10 +98,14 @@ def run_app():
 
 def draw_text_insights(uidata_text_insighs:UIData_TextInsights) -> None:
     with st.container():
-        st.markdown("""---""")
         st.write(uidata_text_insighs.text_statistics)
         st.markdown("""---""")
-        
+    
+    with st.container():
+        st.metric("Cluster Quality (0 is best)", uidata_text_insighs.tfidf_cluster_quality)
+        st.dataframe(uidata_text_insighs.tfidf_cluster_top_words)
+
+    with st.container():
         col1, col2 = st.columns(2)
         with col1:
             st.table(uidata_text_insighs.positives)
@@ -140,9 +145,12 @@ def draw_text_insights(uidata_text_insighs:UIData_TextInsights) -> None:
 @st.cache(hash_funcs={UIData_TextInsights:hash_text_insights})
 def get_text_insights(dh: DataHandler, sent_top_n:int=10, ngram_top_n:int = 5, pos_top_n:int=5) -> UIData_TextInsights:
     print("Insights - Cache Miss")
+    
     anl = Analyser()
     top_positives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.POSITIVE, sent_top_n)
     top_negatives = anl.get_top_sentiments(dh.sentiment, Sentiment_Type.NEGATIVE, sent_top_n)
+
+    dh.tfidf_clusters = anl.compute_tfidf_cluster(dh.data, dh.tfidf)
 
     top_verbs = dh.pos_verbs_ranking[:pos_top_n]
     top_nouns = dh.pos_nouns_ranking[:pos_top_n]
@@ -155,6 +163,9 @@ def get_text_insights(dh: DataHandler, sent_top_n:int=10, ngram_top_n:int = 5, p
     uidata.file_name = dh.file_name
     
     uidata.text_statistics = "This file has {nl} lines and {nw} words".format(nl = dh.line_count, nw=dh.word_count)
+
+    uidata.tfidf_cluster_quality = "{x:.2f}".format(x=dh.tfidf_clusters.inertia)
+    uidata.tfidf_cluster_top_words = pd.DataFrame([(x, ",".join(dh.tfidf_clusters.top_words_clusters[x])) for x in dh.tfidf_clusters.top_words_clusters], columns=("Cluster", "Top Words"))
 
     uidata.idf_ranking = pd.DataFrame.from_dict(dh.tfidf.idf, orient="index", columns=["Rank"])
     uidata.idf_ranking = uidata.idf_ranking.sort_values(by=["Rank"], ascending=False).head(sent_top_n)
